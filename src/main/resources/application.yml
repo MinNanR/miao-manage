@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: jdbc:mysql://minnan.site:3306/miao?serverTimezone=Asia/Shanghai&allowMultiQueries=true
+    username: Minnan
+    password: minnan
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      max-lifetime: 600000
+      allow-pool-suspension: true
+      register-mbeans: true
+      idle-timeout: 60000
+      connection-timeout: 60000
+
+  redis:
+    host: minnan.site
+    port: 6379
+    database: 3
+    password: minnan
+
+server:
+  port: 8901
+
+jwt:
+  route:
+    authentication:
+  header: Authorization
+  expiration: 604800
+  scret: miao4953
+
+logging:
+  file:
+    name: ./logs/miao.log
+    max-history: 30
+
+mybatis-plus:
+  mapper-locations: /site/minnan/miao/domain/mapper/*.xml
+  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    map-underscore-to-camel-case: true
+
+aliyun:
+  bucketName: link-server
+  baseUrl: https://minnan.site:2005
+  folder: miao
