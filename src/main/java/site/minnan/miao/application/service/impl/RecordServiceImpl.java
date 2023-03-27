@@ -6,6 +6,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aliyun.oss.OSS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -164,8 +165,6 @@ public class RecordServiceImpl implements RecordService {
         String now = DateTime.now().toString("yyyy-MM-dd");
 
         String lastMonday = record.getWeekStartDate();
-        String lastSunday = DateUtil.endOfWeek(DateUtil.parseDate(lastMonday)).toString("yyyy-mm-dd");
-
 
         ImportRecordPage recordPage = ImportRecordPage.builder()
                 .importRecordId(recordId)
@@ -175,7 +174,6 @@ public class RecordServiceImpl implements RecordService {
                 .picUrl(ossUrl)
                 .build();
         importRecordPageMapper.insert(recordPage);
-
 
         String towWeeksAgo =
                 DateUtil.beginOfWeek(DateUtil.offsetWeek(DateUtil.parseDate(lastMonday), -1)).toString("yyyy-mm-dd");
@@ -201,12 +199,9 @@ public class RecordServiceImpl implements RecordService {
                     e.setCorrected(0);
                 });
 
+        newRecordList.forEach(e -> contributionRecordMapper.insert(e));
 
-
-
-    }
-
-    public static void main(String[] args) {
-        System.out.println(DateUtil.today());
+        record.addPage(newRecordList.size());
+        importRecordMapper.updateById(record);
     }
 }

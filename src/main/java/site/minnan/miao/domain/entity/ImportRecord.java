@@ -64,4 +64,9 @@ public class ImportRecord {
      */
     @TableField("create_time")
     private String createTime;
+
+    public void addPage(Integer recordCount) {
+        this.pageCount += 1;
+        this.recordCount += recordCount;
+    }
 }
