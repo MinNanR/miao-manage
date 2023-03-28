@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.application.service.RecordService;
 import site.minnan.miao.domain.entity.ImportRecord;
+import site.minnan.miao.domain.vo.ContributionVO;
 import site.minnan.miao.domain.vo.ImportRecordListVO;
 import site.minnan.miao.domain.vo.ListQueryVO;
+import site.minnan.miao.domain.vo.RecordPageVO;
 import site.minnan.miao.infrastructure.utils.JwtUtil;
+import site.minnan.miao.userinterface.dto.DetailsQueryDTO;
 import site.minnan.miao.userinterface.dto.GetImportRecordListDTO;
 import site.minnan.miao.userinterface.dto.VerifyProtectDTO;
 import site.minnan.miao.userinterface.response.ResponseEntity;
@@ -40,16 +43,15 @@ public class RecordController {
     }
 
     @PostMapping("/uploadPic")
-    public ResponseEntity<?> uploadFile(MultipartFile file, String token, HttpServletRequest request) throws Exception {
+    public ResponseEntity<?> uploadFile(MultipartFile file, String token) throws Exception {
         System.out.println(file.getName());
-        System.out.println(file.getSize());
         System.out.println(token);
         ImportRecord importRecord = recordService.validateToken(token);
         recordService.handleUploadFile(file, importRecord);
         return ResponseEntity.success();
     }
 
-    @PostMapping("verifyProtectCode")
+    @PostMapping("/verifyProtectCode")
     public ResponseEntity<?> verifyProtectCode(@RequestBody @Validated VerifyProtectDTO dto, HttpServletResponse response) {
         String token = recordService.verifyProtectCode(dto, response);
         boolean verified = token != null;
@@ -59,4 +61,28 @@ public class RecordController {
         }
         return ResponseEntity.success(builder.build());
     }
+
+    /**
+     * 查询记录页
+     *
+     * @param dto
+     * @return
+     */
+    @PostMapping("/getRecordPageList")
+    public ResponseEntity<ListQueryVO<RecordPageVO>> getRecordPageList(@RequestBody @Validated DetailsQueryDTO dto) {
+        ListQueryVO<RecordPageVO> vo = recordService.getRecordPageList(dto);
+        return ResponseEntity.success(vo);
+    }
+    /**
+     * 识别结果
+     *
+     * @param dto
+     * @return
+     */
+    @PostMapping("/getContributionResult")
+    public ResponseEntity<ListQueryVO<ContributionVO>> getContributionResult(@RequestBody @Validated DetailsQueryDTO dto) {
+        ListQueryVO<ContributionVO> vo = recordService.getContributionList(dto);
+        return ResponseEntity.success(vo);
+    }
+
 }

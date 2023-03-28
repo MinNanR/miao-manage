@@ -2,8 +2,11 @@ package site.minnan.miao.application.service;
 
 import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.domain.entity.ImportRecord;
+import site.minnan.miao.domain.vo.ContributionVO;
 import site.minnan.miao.domain.vo.ImportRecordListVO;
 import site.minnan.miao.domain.vo.ListQueryVO;
+import site.minnan.miao.domain.vo.RecordPageVO;
+import site.minnan.miao.userinterface.dto.DetailsQueryDTO;
 import site.minnan.miao.userinterface.dto.GetImportRecordListDTO;
 import site.minnan.miao.userinterface.dto.VerifyProtectDTO;
 
@@ -46,4 +49,19 @@ public interface RecordService {
      * @param record
      */
     void handleUploadFile(MultipartFile file, ImportRecord record);
+
+    /**
+     * 查询导入页数据（根据导入记录id）
+     * @param dto
+     * @return
+     */
+    ListQueryVO<RecordPageVO> getRecordPageList(DetailsQueryDTO dto);
+
+    /**
+     * 查询识别结果
+     *
+     * @param dto
+     * @return
+     */
+    ListQueryVO<ContributionVO> getContributionList(DetailsQueryDTO dto);
 }

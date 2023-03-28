@@ -1,24 +1,20 @@
 package site.minnan.miao.infrastructure.utils;
 
-import cn.hutool.core.collection.CollUtil;
-import cn.hutool.core.map.MapBuilder;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
-import cn.hutool.json.JSON;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.google.gson.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import site.minnan.miao.domain.entity.ContributionRecord;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -64,13 +60,15 @@ public class PicParseUtil {
             memberDataTemp.add(wordsResult);
         }
 
+        Function<String, Integer> getNumber = s -> Integer.parseInt(ReUtil.replaceAll(s, "\\D", ""));
+
         List<ContributionRecord> recordList = memberDataList.stream()
                 .map(l -> {
                     int length = l.size();
                     return ContributionRecord.builder()
-                            .name(l.get(0).getStr("words").substring(0, 12))
-                            .culvert(Integer.parseInt(l.get(length - 2).getStr("words").replaceAll(",", "")))
-                            .flagRace(Integer.parseInt(l.get(length - 1).getStr("words").replaceAll(",", "")))
+                            .name(StrUtil.sub(l.get(0).getStr("words"), 0 ,12))
+                            .culvert(getNumber.apply(l.get(length - 2).getStr("words")))
+                            .flagRace(getNumber.apply(l.get(length - 1).getStr("words")))
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -90,4 +88,9 @@ public class PicParseUtil {
         return token;
     }
 
+    public static void main(String[] args) {
+        String s = "1,852";
+        int number = Integer.parseInt(ReUtil.replaceAll(s, "\\D", ""));
+        System.out.println(number);
+    }
 }

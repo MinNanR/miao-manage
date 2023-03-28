@@ -26,11 +26,14 @@ import site.minnan.miao.domain.repository.ContributionRecordMapper;
 import site.minnan.miao.domain.repository.ImportRecordMapper;
 import site.minnan.miao.domain.repository.ImportRecordPageMapper;
 import site.minnan.miao.domain.repository.NickCorrectMapper;
+import site.minnan.miao.domain.vo.ContributionVO;
 import site.minnan.miao.domain.vo.ImportRecordListVO;
 import site.minnan.miao.domain.vo.ListQueryVO;
+import site.minnan.miao.domain.vo.RecordPageVO;
 import site.minnan.miao.infrastructure.exception.EntityNotExistException;
 import site.minnan.miao.infrastructure.utils.JwtUtil;
 import site.minnan.miao.infrastructure.utils.PicParseUtil;
+import site.minnan.miao.userinterface.dto.DetailsQueryDTO;
 import site.minnan.miao.userinterface.dto.GetImportRecordListDTO;
 import site.minnan.miao.userinterface.dto.VerifyProtectDTO;
 
@@ -162,7 +165,7 @@ public class RecordServiceImpl implements RecordService {
         Integer recordId = record.getId();
         Integer guildId = record.getGuildId();
         String guildName = record.getGuildName();
-        String now = DateTime.now().toString("yyyy-MM-dd");
+        String now = DateTime.now().toString("yyyy-MM-dd HH:mm:ss");
 
         String lastMonday = record.getWeekStartDate();
 
@@ -176,7 +179,7 @@ public class RecordServiceImpl implements RecordService {
         importRecordPageMapper.insert(recordPage);
 
         String towWeeksAgo =
-                DateUtil.beginOfWeek(DateUtil.offsetWeek(DateUtil.parseDate(lastMonday), -1)).toString("yyyy-mm-dd");
+                DateUtil.beginOfWeek(DateUtil.offsetWeek(DateUtil.parseDate(lastMonday), -1)).toString("yyyy-MM-dd");
 
         LambdaQueryWrapper<ImportRecord> lastWeekImportQuery = Wrappers.<ImportRecord>lambdaQuery()
                 .eq(ImportRecord::getWeekStartDate, towWeeksAgo);
@@ -192,6 +195,10 @@ public class RecordServiceImpl implements RecordService {
                 .peek(e -> {
                     e.setStatus(1);
                     e.setImportRecordPageId(recordPageId);
+                    e.setImportRecordId(recordId);
+                    e.setGuildId(guildId);
+                    e.setGuildName(guildName);
+                    e.setCreateTime(now);
                 })
                 .filter(e -> !lastWeekNameList.contains(e.getName()))
                 .forEach(e -> {
@@ -203,5 +210,35 @@ public class RecordServiceImpl implements RecordService {
 
         record.addPage(newRecordList.size());
         importRecordMapper.updateById(record);
+    }
+
+    /**
+     * 查询导入页数据（根据导入记录id）
+     *
+     * @param dto
+     * @return
+     */
+    @Override
+    public ListQueryVO<RecordPageVO> getRecordPageList(DetailsQueryDTO dto) {
+        LambdaQueryWrapper<ImportRecordPage> listQuery = Wrappers.<ImportRecordPage>lambdaQuery()
+                .eq(ImportRecordPage::getImportRecordId, dto.getId());
+        List<ImportRecordPage> pageList = importRecordPageMapper.selectList(listQuery);
+        List<RecordPageVO> vos = pageList.stream().map(RecordPageVO::assemble).collect(Collectors.toList());
+        return new ListQueryVO<>(vos, vos.size());
+    }
+
+    /**
+     * 查询识别结果
+     *
+     * @param dto
+     * @return
+     */
+    @Override
+    public ListQueryVO<ContributionVO> getContributionList(DetailsQueryDTO dto) {
+        LambdaQueryWrapper<ContributionRecord> listQuery = Wrappers.<ContributionRecord>lambdaQuery()
+                .eq(ContributionRecord::getImportRecordPageId, dto.getId());
+        List<ContributionRecord> pageList = contributionRecordMapper.selectList(listQuery);
+        List<ContributionVO> vos = pageList.stream().map(ContributionVO::assemble).collect(Collectors.toList());
+        return new ListQueryVO<>(vos, vos.size());
     }
 }
