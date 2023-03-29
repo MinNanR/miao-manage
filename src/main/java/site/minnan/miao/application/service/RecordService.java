@@ -89,5 +89,10 @@ public interface RecordService {
      * @param dto
      * @return
      */
-    ListQueryVO<FocusVO> getFocusMemberList(GetFocusDTO dto);
+    FocusDataVO getFocusMemberList(GetFocusDTO dto);
+
+    /**
+     * 定时任务，生成导入记录
+     */
+    void generateRecord();
 }

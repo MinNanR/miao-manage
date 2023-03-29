@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 重点关注人员值对象
@@ -16,7 +17,9 @@ public class FocusVO {
 
     private String name;
 
-    private List<ContributionVO> recordList;
+//    private List<ContributionVO> recordList;
+
+    private Map<String, ContributionVO> recordList;
 
 
 }

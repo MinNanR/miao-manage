@@ -110,8 +110,8 @@ public class RecordController {
     }
 
     @PostMapping("/getFocusList")
-    public ResponseEntity<ListQueryVO<FocusVO>> getFocusMemberList(@RequestBody @Validated GetFocusDTO dto) {
-        ListQueryVO<FocusVO> focusMemberList = recordService.getFocusMemberList(dto);
-        return ResponseEntity.success(focusMemberList);
+    public ResponseEntity<FocusDataVO> getFocusMemberList(@RequestBody @Validated GetFocusDTO dto) {
+        FocusDataVO vo = recordService.getFocusMemberList(dto);
+        return ResponseEntity.success(vo);
     }
 }

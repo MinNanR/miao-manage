@@ -4,6 +4,8 @@ import cn.hutool.core.date.DateTime;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.json.JSONUtil;
 import com.aliyun.oss.OSS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -18,14 +20,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.application.service.RecordService;
-import site.minnan.miao.domain.entity.ContributionRecord;
-import site.minnan.miao.domain.entity.ImportRecord;
-import site.minnan.miao.domain.entity.ImportRecordPage;
-import site.minnan.miao.domain.entity.NickCorrect;
-import site.minnan.miao.domain.repository.ContributionRecordMapper;
-import site.minnan.miao.domain.repository.ImportRecordMapper;
-import site.minnan.miao.domain.repository.ImportRecordPageMapper;
-import site.minnan.miao.domain.repository.NickCorrectMapper;
+import site.minnan.miao.domain.entity.*;
+import site.minnan.miao.domain.repository.*;
 import site.minnan.miao.domain.vo.*;
 import site.minnan.miao.infrastructure.exception.EntityNotExistException;
 import site.minnan.miao.infrastructure.exception.InvalidOperationException;
@@ -36,10 +32,8 @@ import site.minnan.miao.userinterface.dto.*;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.Charset;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -60,6 +54,9 @@ public class RecordServiceImpl implements RecordService {
 
     @Autowired
     private ContributionRecordMapper contributionRecordMapper;
+
+    @Autowired
+    private GuildMapper guildMapper;
 
 
     @Value("${aliyun.baseUrl}")
@@ -315,7 +312,7 @@ public class RecordServiceImpl implements RecordService {
      * @return
      */
     @Override
-    public ListQueryVO<FocusVO> getFocusMemberList(GetFocusDTO dto) {
+    public FocusDataVO getFocusMemberList(GetFocusDTO dto) {
         Integer guildId = dto.getGuildId();
         Integer queryType = dto.getQueryType();
         DateTime now = DateTime.now();
@@ -336,8 +333,57 @@ public class RecordServiceImpl implements RecordService {
                     }
                     return i >= queryType;
                 })
-                .map(e -> new FocusVO(e.getKey(), e.getValue()))
+                .map(e -> new FocusVO(e.getKey(),
+                        e.getValue().stream().collect(Collectors.toMap(ContributionVO::getWeekStartDate, e1 -> e1))))
                 .collect(Collectors.toList());
-        return new ListQueryVO<>(focusList, focusList.size());
+
+        List<String> timeList = new ArrayList<>();
+        DateTime beginOfThisWeek = DateUtil.beginOfWeek(now);
+        timeList.add(DateUtil.offsetWeek(beginOfThisWeek, -1).toString("yyyy-MM-dd"));
+        timeList.add(DateUtil.offsetWeek(beginOfThisWeek, -2).toString("yyyy-MM-dd"));
+        timeList.add(date);
+        return new FocusDataVO(timeList, focusList);
+    }
+
+    /**
+     * 定时任务，生成导入记录
+     */
+    @Override
+    public void generateRecord() {
+        List<Guild> guildList = guildMapper.selectList(null);
+
+        DateTime now = DateTime.now();
+        DateTime lastWeek = DateUtil.offsetWeek(now, -1);
+        String lastWeekString = DateUtil.beginOfWeek(lastWeek).toString("yyyy-MM-dd");
+        String lastWeekSunday = DateUtil.endOfWeek(lastWeek).toString("yyyy-MM-dd");
+        String timeDesc = StrUtil.format("{}至{}", lastWeekString, lastWeekSunday);
+
+        for (Guild guild : guildList) {
+            Integer guildId = guild.getId();
+            LambdaQueryWrapper<ImportRecord> queryWrapper = Wrappers.<ImportRecord>lambdaQuery()
+                    .eq(ImportRecord::getWeekStartDate, lastWeekString)
+                    .eq(ImportRecord::getGuildId, guildId);
+            ImportRecord importRecord = importRecordMapper.selectOne(queryWrapper);
+            if (importRecord != null) {
+                log.warn("{} 上传记录已存在", guild.getName());
+                continue;
+            }
+
+            String rawProtectCode = "4953miao*" + lastWeekString;
+            String protectCode = DigestUtil.md5Hex(rawProtectCode, Charset.defaultCharset());
+
+            ImportRecord newRecord = ImportRecord.builder()
+                    .guildId(guildId)
+                    .guildName(guild.getName())
+                    .weekStartDate(lastWeekString)
+                    .timeDesc(timeDesc)
+                    .pageCount(0)
+                    .protectCode(protectCode)
+                    .createTime(now.toString("yyyy-MM-dd HH:mm:ss"))
+                    .build();
+            importRecordMapper.insert(newRecord);
+            log.info("生成导入记录：{}", JSONUtil.toJsonStr(newRecord));
+        }
+
     }
 }
