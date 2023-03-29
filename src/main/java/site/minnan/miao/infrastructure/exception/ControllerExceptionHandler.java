@@ -73,6 +73,13 @@ public class ControllerExceptionHandler {
         return ResponseEntity.fail(ResponseCode.FAIL, ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidOperationException.class)
+    @ResponseBody
+    public ResponseEntity<?> handleInvalidOperationException(UnmodifiableException ex) {
+        log.error("非法操作用户", ex);
+        return ResponseEntity.invalid(ex.getMessage());
+    }
+
 
     @ExceptionHandler(Exception.class)
     @ResponseBody

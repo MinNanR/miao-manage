@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="site.minnan.miao.domain.repository.ContributionRecordMapper">
+
+    <select id="getOmitRecord" resultType="java.lang.String">
+        select t1.name
+        from contribution_record t1
+        left join
+            (select id, name from contribution_record where import_record_id = #{thisWeekId})
+             as t2 on lower(t1.name) = lower(t2.name)
+        where t1.import_record_id = #{lastWeekId}
+    </select>
+
+    <select id="getContributionList" resultType="site.minnan.miao.domain.vo.ContributionVO">
+        select t1.id id, t1.name name, t1.flag_race flagRace, t1.culvert culvert,
+               t2.time_desc timeDesc
+        from contribution_record t1
+        left join import_record t2 on t1.import_record_id = t2.id
+        where 1 = 1
+        <if test="guildId != null and guildId != 0">
+            and t1.guild_id = #{guildId}
+        </if>
+        <if test="name != null and name != ''">
+            <if test="queryType == 1">
+                and t1.name like concat(#{name}, '%')
+            </if>
+            <if test="queryType == 2">
+                and t1.name like concat('%', #{name}, '%')
+            </if>
+        </if>
+        <if test="weekStartDate != null and weekStartDate != ''">
+            and t2.week_start_date = #{weekStartDate}
+        </if>
+        limit #{start}, #{pageSize}
+    </select>
+
+
+    <select id="countContribution" resultType="java.lang.Integer">
+        select count(1)
+        from contribution_record t1
+        left join import_record t2 on t1.import_record_id = t2.id
+        where 1 = 1
+        <if test="guildId != null and guildId != 0">
+            and t1.guild_id = #{guildId}
+        </if>
+        <if test="name != null and name != ''">
+            <if test="queryType == 1">
+                and t1.name like concat(#{name}, '%')
+            </if>
+            <if test="queryType == 2">
+                and t1.name like concat('%', #{name}, '%')
+            </if>
+        </if>
+        <if test="weekStartDate != null and weekStartDate != ''">
+            and t2.week_start_date = #{weekStartDate}
+        </if>
+    </select>
+
+    <select id="getLatestContribution" resultType="site.minnan.miao.domain.vo.ContributionVO">
+        select t1.id id, t1.name name, t1.flag_race flagRace, t1.culvert culvert, t2.week_start_date weekStartDate,
+               t2.time_desc timeDesc
+        from contribution_record t1
+        left join import_record t2 on t1.import_record_id = t2.id
+        where t2.week_start_date >= #{date}
+        <if test="guildId != null and guildId != 0">
+            and t1.guild_id = #{guildId}
+        </if>
+    </select>
+</mapper>

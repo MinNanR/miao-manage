@@ -25,12 +25,22 @@ public class ContributionVO {
 
     private Integer flagRace;
 
+    private String timeDesc;
+
+    private String weekStartDate;
+
+    private Integer status;
+
+    private Integer corrected;
+
     public static ContributionVO assemble(ContributionRecord c) {
         return builder()
                 .id(c.getId())
                 .name(c.getName())
                 .culvert(c.getCulvert())
                 .flagRace(c.getFlagRace())
+                .status(c.getStatus())
+                .corrected(c.getCorrected())
                 .build();
     }
 

@@ -2,13 +2,8 @@ package site.minnan.miao.application.service;
 
 import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.domain.entity.ImportRecord;
-import site.minnan.miao.domain.vo.ContributionVO;
-import site.minnan.miao.domain.vo.ImportRecordListVO;
-import site.minnan.miao.domain.vo.ListQueryVO;
-import site.minnan.miao.domain.vo.RecordPageVO;
-import site.minnan.miao.userinterface.dto.DetailsQueryDTO;
-import site.minnan.miao.userinterface.dto.GetImportRecordListDTO;
-import site.minnan.miao.userinterface.dto.VerifyProtectDTO;
+import site.minnan.miao.domain.vo.*;
+import site.minnan.miao.userinterface.dto.*;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -40,7 +35,7 @@ public interface RecordService {
      * @param token
      * @return
      */
-    ImportRecord validateToken(String token) throws Exception;
+    ImportRecord validateToken(String token);
 
     /**
      * 处理上传文件
@@ -64,4 +59,35 @@ public interface RecordService {
      * @return
      */
     ListQueryVO<ContributionVO> getContributionList(DetailsQueryDTO dto);
+
+    /**
+     * 修改跑旗记录
+     *
+     * @param dto
+     */
+    void updateContribution(UpdateContributionDTO dto, ImportRecord importRecord);
+
+    /**
+     * 查询本周遗漏名单
+     *
+     * @param dto
+     * @return
+     */
+    ListQueryVO<String> getOmitName(DetailsQueryDTO dto);
+
+    /**
+     * 查询跑旗记录
+     *
+     * @param dto
+     * @return
+     */
+    ListQueryVO<ContributionVO> getContributionList(GetContributionListDTO dto);
+
+    /**
+     * 查询重点关注对象
+     *
+     * @param dto
+     * @return
+     */
+    ListQueryVO<FocusVO> getFocusMemberList(GetFocusDTO dto);
 }

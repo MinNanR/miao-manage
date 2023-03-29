@@ -6,7 +6,6 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.aliyun.oss.OSS;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.application.service.RecordService;
 import site.minnan.miao.domain.entity.ContributionRecord;
@@ -26,19 +26,18 @@ import site.minnan.miao.domain.repository.ContributionRecordMapper;
 import site.minnan.miao.domain.repository.ImportRecordMapper;
 import site.minnan.miao.domain.repository.ImportRecordPageMapper;
 import site.minnan.miao.domain.repository.NickCorrectMapper;
-import site.minnan.miao.domain.vo.ContributionVO;
-import site.minnan.miao.domain.vo.ImportRecordListVO;
-import site.minnan.miao.domain.vo.ListQueryVO;
-import site.minnan.miao.domain.vo.RecordPageVO;
+import site.minnan.miao.domain.vo.*;
 import site.minnan.miao.infrastructure.exception.EntityNotExistException;
+import site.minnan.miao.infrastructure.exception.InvalidOperationException;
 import site.minnan.miao.infrastructure.utils.JwtUtil;
 import site.minnan.miao.infrastructure.utils.PicParseUtil;
-import site.minnan.miao.userinterface.dto.DetailsQueryDTO;
-import site.minnan.miao.userinterface.dto.GetImportRecordListDTO;
-import site.minnan.miao.userinterface.dto.VerifyProtectDTO;
+import site.minnan.miao.userinterface.dto.*;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.constraints.NotNull;
 import java.io.InputStream;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -117,13 +116,13 @@ public class RecordServiceImpl implements RecordService {
     }
 
     @Override
-    public ImportRecord validateToken(String token) throws Exception {
+    public ImportRecord validateToken(String token) {
         String idStr = jwtUtil.getSubjectFromtoken(token);
         int id = Integer.parseInt(idStr);
         ImportRecord importRecord = importRecordMapper.selectById(id);
         Boolean validated = jwtUtil.validateToken(token, importRecord);
         if (!validated) {
-            throw new Exception("非法token");
+            throw new InvalidOperationException("非法token");
         }
         return importRecord;
     }
@@ -202,7 +201,7 @@ public class RecordServiceImpl implements RecordService {
                 })
                 .filter(e -> !lastWeekNameList.contains(e.getName()))
                 .forEach(e -> {
-                    e.setStatus(0);
+                    e.setStatus(2);
                     e.setCorrected(0);
                 });
 
@@ -240,5 +239,105 @@ public class RecordServiceImpl implements RecordService {
         List<ContributionRecord> pageList = contributionRecordMapper.selectList(listQuery);
         List<ContributionVO> vos = pageList.stream().map(ContributionVO::assemble).collect(Collectors.toList());
         return new ListQueryVO<>(vos, vos.size());
+    }
+
+    /**
+     * 修改跑旗记录
+     *
+     * @param dto
+     */
+    @Override
+    @Transactional
+    public void updateContribution(UpdateContributionDTO dto, ImportRecord importRecord) {
+        ContributionRecord contribution = contributionRecordMapper.selectById(dto.getId());
+        if (contribution == null) {
+            throw new EntityNotExistException("miao贡记录不存在");
+        }
+        if (!importRecord.getId().equals(contribution.getImportRecordId())) {
+            throw new InvalidOperationException("非法操作token");
+        }
+        String originalName = contribution.getName();
+        String newName = dto.getName();
+        if (!StrUtil.equalsAnyIgnoreCase(originalName, newName)) {
+            NickCorrect nickCorrect = NickCorrect.builder()
+                    .original(originalName)
+                    .correct(newName)
+                    .build();
+            nickCorrectMapper.addCorrect(nickCorrect);
+        }
+        contribution.setName(dto.getName());
+        contribution.setFlagRace(dto.getFlagRace());
+        contribution.setCulvert(dto.getCulvert());
+        contribution.setCorrected(1);
+        contributionRecordMapper.updateById(contribution);
+    }
+
+    /**
+     * 查询本周遗漏名单
+     *
+     * @param dto
+     * @return
+     */
+    @Override
+    public ListQueryVO<String> getOmitName(DetailsQueryDTO dto) {
+        ImportRecord importRecord = importRecordMapper.selectById(dto.getId());
+        String weekStartDate = importRecord.getWeekStartDate();
+        String lastWeekStartDate = DateUtil.offsetWeek(DateTime.of(weekStartDate, "yyyy-MM-dd"), -1).toString("yyyy" +
+                "-MM-dd");
+
+        LambdaQueryWrapper<ImportRecord> queryWrapper = Wrappers.<ImportRecord>lambdaQuery()
+                .eq(ImportRecord::getWeekStartDate, lastWeekStartDate);
+        ImportRecord lastWeekRecord = importRecordMapper.selectOne(queryWrapper);
+
+        List<String> omitNameList = contributionRecordMapper.getOmitRecord(importRecord.getId(),
+                lastWeekRecord.getId());
+        return new ListQueryVO<>(omitNameList, omitNameList.size());
+    }
+
+    /**
+     * 查询跑旗记录
+     *
+     * @param dto
+     * @return
+     */
+    @Override
+    public ListQueryVO<ContributionVO> getContributionList(GetContributionListDTO dto) {
+        Integer totalCount = contributionRecordMapper.countContribution(dto);
+        List<ContributionVO> list = totalCount > 0 ? contributionRecordMapper.getContributionList(dto) :
+                Collections.emptyList();
+        return new ListQueryVO<>(list, totalCount);
+    }
+
+    /**
+     * 查询重点关注对象
+     *
+     * @param dto
+     * @return
+     */
+    @Override
+    public ListQueryVO<FocusVO> getFocusMemberList(GetFocusDTO dto) {
+        Integer guildId = dto.getGuildId();
+        Integer queryType = dto.getQueryType();
+        DateTime now = DateTime.now();
+        DateTime lastThreeWeek = DateUtil.offsetWeek(now, -3);
+        String date = DateUtil.beginOfWeek(lastThreeWeek).toString("yyyy-MM-dd");
+        List<ContributionVO> contributionList = contributionRecordMapper.getLatestContribution(date, guildId);
+        List<FocusVO> focusList = contributionList.stream()
+                .collect(Collectors.groupingBy(e -> e.getName().toLowerCase()))
+                .entrySet().stream()
+                .filter(entry -> {
+                    List<ContributionVO> list = entry.getValue();
+                    list.sort(Comparator.comparing(ContributionVO::getWeekStartDate).reversed());
+                    int i = 0;
+                    for (ContributionVO vo : list) {
+                        if (vo.getCulvert() == 0 && vo.getFlagRace() == 0) {
+                            i++;
+                        }
+                    }
+                    return i >= queryType;
+                })
+                .map(e -> new FocusVO(e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        return new ListQueryVO<>(focusList, focusList.size());
     }
 }

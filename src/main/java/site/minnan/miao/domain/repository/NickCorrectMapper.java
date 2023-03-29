@@ -9,4 +9,10 @@ import site.minnan.miao.domain.entity.NickCorrect;
 @Mapper
 public interface NickCorrectMapper extends BaseMapper<NickCorrect> {
 
+    /**
+     * 添加修正记录
+     *
+     * @param nickCorrect
+     */
+    void addCorrect(NickCorrect nickCorrect);
 }
