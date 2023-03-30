@@ -3,6 +3,7 @@ package site.minnan.miao.userinterface.dto;
 import lombok.Data;
 
 import javax.validation.constraints.NotNull;
+import java.util.List;
 
 /**
  * 跑旗查询参数
@@ -35,6 +36,13 @@ public class GetContributionListDTO {
     private Integer pageIndex;
 
     private Integer pageSize;
+
+    /**
+     * 排序信息，
+     * 1-按水路
+     * 2-按跑旗
+     */
+    private List<SortInfo> sortInfoList;
 
     public Integer getStart() {
         return (pageIndex - 1) * pageSize;

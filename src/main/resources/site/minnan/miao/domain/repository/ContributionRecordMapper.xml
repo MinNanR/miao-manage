@@ -36,7 +36,23 @@
         <if test="queryType == 3">
             and t2.week_start_date >= #{weekStartDate}
         </if>
-        order by t1.create_time
+        order by
+        <if test="sortInfoList == null or sortInfoList.size() == 0">
+            t1.create_time
+        </if>
+        <if test="sortInfoList != null and sortInfoList.size() > 0">
+            <foreach collection="sortInfoList" item="item" index="index" separator=",">
+                <if test="item.sortType == 'flagRace'">
+                    t1.flag_race
+                </if>
+                <if test="item.sortType == 'culvert'">
+                    t1.culvert
+                </if>
+                <if test="item.order == 2">
+                    desc
+                </if>
+            </foreach>
+        </if>
         limit #{start}, #{pageSize}
     </select>
 
