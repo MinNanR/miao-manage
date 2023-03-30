@@ -6,6 +6,7 @@ import site.minnan.miao.domain.vo.*;
 import site.minnan.miao.userinterface.dto.*;
 
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 
 /**
  * 记录服务
@@ -43,7 +44,7 @@ public interface RecordService {
      * @param file
      * @param record
      */
-    void handleUploadFile(MultipartFile file, ImportRecord record);
+    String handleUploadFile(MultipartFile file, ImportRecord record) throws IOException;
 
     /**
      * 查询导入页数据（根据导入记录id）

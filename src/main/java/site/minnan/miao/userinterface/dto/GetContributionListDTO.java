@@ -13,7 +13,7 @@ import javax.validation.constraints.NotNull;
 public class GetContributionListDTO {
 
     /**
-     * 查询类型（1-前置匹配，2-模糊匹配
+     * 查询类型（1-前置匹配，2-模糊匹配，3-群查询)
      */
     private Integer queryType;
 

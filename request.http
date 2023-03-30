@@ -1,1 +1,12 @@
 GET https://api.maplestory.gg/v2/public/character/gms/minnankanna1
+
+###
+POST http://localhost:8901/miao-api/record/getContributionList
+Content-Type: application/json
+
+{
+  "pageSize": 1000,
+  "pageIndex": 1,
+  "name": "aran",
+  "queryType": 3
+}

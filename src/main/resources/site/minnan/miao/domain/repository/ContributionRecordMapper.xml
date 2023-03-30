@@ -10,7 +10,7 @@
         left join
             (select id, name from contribution_record where import_record_id = #{thisWeekId})
              as t2 on lower(t1.name) = lower(t2.name)
-        where t1.import_record_id = #{lastWeekId}
+        where t1.import_record_id = #{lastWeekId} and t2.id is null
     </select>
 
     <select id="getContributionList" resultType="site.minnan.miao.domain.vo.ContributionVO">
@@ -23,16 +23,20 @@
             and t1.guild_id = #{guildId}
         </if>
         <if test="name != null and name != ''">
-            <if test="queryType == 1">
-                and t1.name like concat(#{name}, '%')
+            <if test="queryType == 1 or queryType == 3">
+                and lower(t1.name) like concat(lower(#{name}), '%')
             </if>
             <if test="queryType == 2">
-                and t1.name like concat('%', #{name}, '%')
+                and lower(t1.name) like concat('%', lower(#{name}), '%')
             </if>
         </if>
-        <if test="weekStartDate != null and weekStartDate != ''">
+        <if test="weekStartDate != null and weekStartDate != '' and queryType != 3">
             and t2.week_start_date = #{weekStartDate}
         </if>
+        <if test="queryType == 3">
+            and t2.week_start_date >= #{weekStartDate}
+        </if>
+        order by t1.create_time
         limit #{start}, #{pageSize}
     </select>
 
@@ -46,15 +50,18 @@
             and t1.guild_id = #{guildId}
         </if>
         <if test="name != null and name != ''">
-            <if test="queryType == 1">
-                and t1.name like concat(#{name}, '%')
+            <if test="queryType == 1 or queryType == 3">
+                and lower(t1.name) like concat(lower(#{name}), '%')
             </if>
             <if test="queryType == 2">
-                and t1.name like concat('%', #{name}, '%')
+                and lower(t1.name) like concat('%', lower(#{name}), '%')
             </if>
         </if>
-        <if test="weekStartDate != null and weekStartDate != ''">
+        <if test="weekStartDate != null and weekStartDate != '' and queryType != 3">
             and t2.week_start_date = #{weekStartDate}
+        </if>
+        <if test="queryType == 3">
+            and t2.week_start_date >= #{weekStartDate}
         </if>
     </select>
 

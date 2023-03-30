@@ -41,11 +41,9 @@ public class RecordController {
 
     @PostMapping("/uploadPic")
     public ResponseEntity<?> uploadFile(MultipartFile file, String token) throws Exception {
-        System.out.println(file.getName());
-        System.out.println(token);
         ImportRecord importRecord = recordService.validateToken(token);
-        recordService.handleUploadFile(file, importRecord);
-        return ResponseEntity.success();
+        String message = recordService.handleUploadFile(file, importRecord);
+        return ResponseEntity.success(message);
     }
 
     @PostMapping("/verifyProtectCode")

@@ -31,6 +31,7 @@ import site.minnan.miao.userinterface.dto.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotNull;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -131,9 +132,7 @@ public class RecordServiceImpl implements RecordService {
      * @param record
      */
     @Override
-    @Async
-    @SneakyThrows
-    public void handleUploadFile(MultipartFile file, ImportRecord record) {
+    public String handleUploadFile(MultipartFile file, ImportRecord record) throws IOException {
         InputStream inputStream = file.getInputStream();
         String today = DateUtil.today().replaceAll("-", "");
         String originalFilename = file.getOriginalFilename();
@@ -152,10 +151,10 @@ public class RecordServiceImpl implements RecordService {
 
         List<NickCorrect> allCorrectRecord = nickCorrectMapper.selectList(null);
         allCorrectRecord.stream()
-                .filter(e -> newNameMap.containsKey(e.getOriginal()))
+                .filter(e -> newNameMap.containsKey(e.getOriginal().toLowerCase()))
                 .forEach(e -> {
                     String original = e.getOriginal();
-                    newNameMap.get(original).correct(e);
+                    newNameMap.get(original.toLowerCase()).correct(e);
                 });
 
         Integer recordId = record.getId();
@@ -184,10 +183,11 @@ public class RecordServiceImpl implements RecordService {
         LambdaQueryWrapper<ContributionRecord> lastWeekRecordQuery = Wrappers.<ContributionRecord>lambdaQuery()
                 .eq(ContributionRecord::getImportRecordId, lastWeekRecord.getId());
         List<ContributionRecord> lastWeekRecordList = contributionRecordMapper.selectList(lastWeekRecordQuery);
-        List<String> lastWeekNameList = lastWeekRecordList.stream().map(e -> e.getName()).collect(Collectors.toList());
+        List<String> lastWeekNameList =
+                lastWeekRecordList.stream().map(e -> e.getName().toLowerCase()).collect(Collectors.toList());
 
         Integer recordPageId = recordPage.getId();
-        newRecordList.stream()
+        long errorCount = newRecordList.stream()
                 .peek(e -> {
                     e.setStatus(1);
                     e.setImportRecordPageId(recordPageId);
@@ -196,16 +196,19 @@ public class RecordServiceImpl implements RecordService {
                     e.setGuildName(guildName);
                     e.setCreateTime(now);
                 })
-                .filter(e -> !lastWeekNameList.contains(e.getName()))
-                .forEach(e -> {
+                .filter(e -> !lastWeekNameList.contains(e.getName().toLowerCase()))
+                .peek(e -> {
                     e.setStatus(2);
                     e.setCorrected(0);
-                });
+                })
+                .count();
 
         newRecordList.forEach(e -> contributionRecordMapper.insert(e));
 
         record.addPage(newRecordList.size());
         importRecordMapper.updateById(record);
+
+        return StrUtil.format("本次解析数据{}条，异常数据{}条", newRecordList.size(), errorCount);
     }
 
     /**
@@ -299,6 +302,12 @@ public class RecordServiceImpl implements RecordService {
      */
     @Override
     public ListQueryVO<ContributionVO> getContributionList(GetContributionListDTO dto) {
+        if (dto.getQueryType() == 3) {
+            DateTime now = DateTime.now();
+            DateTime lastThreeWeek = DateUtil.offsetWeek(now, -3);
+            String date = DateUtil.beginOfWeek(lastThreeWeek).toString("yyyy-MM-dd");
+            dto.setWeekStartDate(date);
+        }
         Integer totalCount = contributionRecordMapper.countContribution(dto);
         List<ContributionVO> list = totalCount > 0 ? contributionRecordMapper.getContributionList(dto) :
                 Collections.emptyList();
@@ -329,6 +338,8 @@ public class RecordServiceImpl implements RecordService {
                     for (ContributionVO vo : list) {
                         if (vo.getCulvert() == 0 && vo.getFlagRace() == 0) {
                             i++;
+                        } else {
+                            break;
                         }
                     }
                     return i >= queryType;
@@ -369,7 +380,7 @@ public class RecordServiceImpl implements RecordService {
                 continue;
             }
 
-            String rawProtectCode = "4953miao*" + lastWeekString;
+            String rawProtectCode = StrUtil.format("4953{}*{}", guild.getName(), lastWeekString);
             String protectCode = DigestUtil.md5Hex(rawProtectCode, Charset.defaultCharset());
 
             ImportRecord newRecord = ImportRecord.builder()
