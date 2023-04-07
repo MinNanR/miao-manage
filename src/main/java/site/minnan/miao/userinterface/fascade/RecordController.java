@@ -1,5 +1,6 @@
 package site.minnan.miao.userinterface.fascade;
 
+import cn.hutool.core.lang.Console;
 import cn.hutool.core.map.MapBuilder;
 import cn.hutool.core.util.ObjectUtil;
 import org.apache.ibatis.annotations.Param;
@@ -85,7 +86,7 @@ public class RecordController {
     @PostMapping("/updateContribution")
     public ResponseEntity<?> updateContribution(@RequestBody @Validated UpdateContributionDTO dto) {
         ImportRecord importRecord = recordService.validateToken(dto.getToken());
-        recordService.updateContribution(dto, importRecord);
+//        recordService.updateContribution(dto, importRecord);
         return ResponseEntity.success();
     }
 

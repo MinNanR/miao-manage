@@ -11,11 +11,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,11 +27,10 @@ import site.minnan.miao.infrastructure.utils.JwtUtil;
 import site.minnan.miao.infrastructure.utils.PicParseUtil;
 import site.minnan.miao.userinterface.dto.*;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -106,7 +103,9 @@ public class RecordServiceImpl implements RecordService {
             throw new EntityNotExistException("记录不存在");
         }
         String protectCode = importRecord.getProtectCode();
-        boolean verified = protectCode.equals(dto.getProtectCode());
+        String salt = DateTime.now().toString("dd");
+        String encodedProtectCode = DigestUtil.md5Hex(protectCode + salt);
+        boolean verified = encodedProtectCode.equals(dto.getProtectCode());
         if (!verified) {
             return null;
         }
@@ -380,8 +379,8 @@ public class RecordServiceImpl implements RecordService {
                 continue;
             }
 
-            String rawProtectCode = StrUtil.format("4953{}*{}", guild.getName(), lastWeekString);
-            String protectCode = DigestUtil.md5Hex(rawProtectCode, Charset.defaultCharset());
+//            String rawProtectCode = StrUtil.format("4953{}*{}", guild.getName(), lastWeekString);
+//            String protectCode = DigestUtil.md5Hex(rawProtectCode, Charset.defaultCharset());
 
             ImportRecord newRecord = ImportRecord.builder()
                     .guildId(guildId)
@@ -389,7 +388,7 @@ public class RecordServiceImpl implements RecordService {
                     .weekStartDate(lastWeekString)
                     .timeDesc(timeDesc)
                     .pageCount(0)
-                    .protectCode(protectCode)
+                    .protectCode(lastWeekString.replaceAll("-", ""))
                     .createTime(now.toString("yyyy-MM-dd HH:mm:ss"))
                     .build();
             importRecordMapper.insert(newRecord);
