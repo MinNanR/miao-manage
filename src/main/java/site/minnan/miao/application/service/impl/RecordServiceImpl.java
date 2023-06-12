@@ -347,11 +347,11 @@ public class RecordServiceImpl implements RecordService {
                         e.getValue().stream().collect(Collectors.toMap(ContributionVO::getWeekStartDate, e1 -> e1))))
                 .collect(Collectors.toList());
 
-        List<String> timeList = new ArrayList<>();
         DateTime beginOfThisWeek = DateUtil.beginOfWeek(now);
-        timeList.add(DateUtil.offsetWeek(beginOfThisWeek, -1).toString("yyyy-MM-dd"));
-        timeList.add(DateUtil.offsetWeek(beginOfThisWeek, -2).toString("yyyy-MM-dd"));
-        timeList.add(date);
+        String lastWeek = DateUtil.offsetWeek(beginOfThisWeek, -1).toString("yyyy-MM-dd");
+        List<String> timeList = Arrays.asList(lastWeek,
+                DateUtil.offsetWeek(beginOfThisWeek, -2).toString("yyyy-MM-dd"), date);
+        focusList.removeIf(e -> !e.getRecordList().containsKey(lastWeek));
         return new FocusDataVO(timeList, focusList);
     }
 

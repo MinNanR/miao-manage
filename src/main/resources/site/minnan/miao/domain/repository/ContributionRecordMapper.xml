@@ -38,7 +38,7 @@
         </if>
         order by
         <if test="sortInfoList == null or sortInfoList.size() == 0">
-            t1.create_time
+            t1.create_time desc
         </if>
         <if test="sortInfoList != null and sortInfoList.size() > 0">
             <foreach collection="sortInfoList" item="item" index="index" separator=",">

@@ -1,9 +1,9 @@
 package site.minnan.miao.userinterface.fascade;
 
-import cn.hutool.core.lang.Console;
+import cn.hutool.core.date.DateTime;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.map.MapBuilder;
-import cn.hutool.core.util.ObjectUtil;
-import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,18 +14,11 @@ import org.springframework.web.multipart.MultipartFile;
 import site.minnan.miao.application.service.RecordService;
 import site.minnan.miao.domain.entity.ImportRecord;
 import site.minnan.miao.domain.vo.*;
-import site.minnan.miao.infrastructure.utils.JwtUtil;
 import site.minnan.miao.userinterface.dto.*;
 import site.minnan.miao.userinterface.response.ResponseEntity;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Stream;
+import java.io.FileOutputStream;
 
 @RequestMapping("/miao-api/record")
 @RestController
@@ -86,7 +79,7 @@ public class RecordController {
     @PostMapping("/updateContribution")
     public ResponseEntity<?> updateContribution(@RequestBody @Validated UpdateContributionDTO dto) {
         ImportRecord importRecord = recordService.validateToken(dto.getToken());
-//        recordService.updateContribution(dto, importRecord);
+        recordService.updateContribution(dto, importRecord);
         return ResponseEntity.success();
     }
 
